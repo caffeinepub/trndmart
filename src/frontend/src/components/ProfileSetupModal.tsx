@@ -32,10 +32,15 @@ export function ProfileSetupModal() {
   const [adminCode, setAdminCode] = useState("");
   const [adminSectionOpen, setAdminSectionOpen] = useState(false);
   const [adminError, setAdminError] = useState("");
+  const [dismissed, setDismissed] = useState(false);
 
   const isAuthenticated = !!identity;
   const showModal =
-    isAuthenticated && isFetched && !isLoading && profile === null;
+    !dismissed &&
+    isAuthenticated &&
+    isFetched &&
+    !isLoading &&
+    profile === null;
 
   const isPending = registerUser.isPending || claimAdmin.isPending;
 
@@ -45,7 +50,13 @@ export function ProfileSetupModal() {
 
     try {
       await registerUser.mutateAsync(name.trim());
-    } catch {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      // If user is already registered, just close the modal
+      if (message.includes("already registered")) {
+        setDismissed(true);
+        return;
+      }
       toast.error("Failed to create account. Please try again.");
       return;
     }
@@ -53,20 +64,25 @@ export function ProfileSetupModal() {
     if (adminCode.trim()) {
       try {
         await claimAdmin.mutateAsync(adminCode.trim());
-        toast.success("Welcome, Store Owner! Admin access granted. 🎉");
+        toast.success("Welcome, Store Owner! Admin access granted.");
       } catch {
         setAdminError(
           "Invalid admin code. You're registered as a regular customer.",
         );
-        toast.success(`Welcome to TrNDMart, ${name.trim()}! 🛍️`);
+        toast.success(`Welcome to TrNDMart, ${name.trim()}!`);
       }
     } else {
-      toast.success(`Welcome to TrNDMart, ${name.trim()}! 🛍️`);
+      toast.success(`Welcome to TrNDMart, ${name.trim()}!`);
     }
   };
 
   return (
-    <Dialog open={showModal}>
+    <Dialog
+      open={showModal}
+      onOpenChange={(open) => {
+        if (!open) setDismissed(true);
+      }}
+    >
       <DialogContent className="sm:max-w-md" data-ocid="profile.dialog">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
@@ -120,8 +136,8 @@ export function ProfileSetupModal() {
               <Input
                 id="admin-code"
                 data-ocid="profile.admin_input"
-                type="password"
-                placeholder="Enter admin code (e.g. admin123)"
+                type="text"
+                placeholder="Enter admin code"
                 value={adminCode}
                 onChange={(e) => {
                   setAdminCode(e.target.value);

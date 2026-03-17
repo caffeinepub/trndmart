@@ -60,12 +60,26 @@ export function Header() {
 
   const handleClaimAdmin = async () => {
     try {
-      await claimAdmin.mutateAsync(adminCode);
+      await claimAdmin.mutateAsync(adminCode.trim());
       toast.success("Admin access granted!");
       setAdminDialogOpen(false);
       setAdminCode("");
-    } catch {
-      toast.error("Invalid admin code");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const lower = msg.toLowerCase();
+      if (lower.includes("sign up") || lower.includes("register")) {
+        toast.error(
+          "You must create an account first before claiming admin access.",
+        );
+      } else if (
+        lower.includes("invalid") ||
+        lower.includes("wrong") ||
+        lower.includes("incorrect")
+      ) {
+        toast.error("Wrong admin code. Please check and try again.");
+      } else {
+        toast.error(msg || "Wrong admin code. Please check and try again.");
+      }
     }
   };
 
@@ -325,7 +339,7 @@ export function Header() {
             <Input
               id="admin-code"
               data-ocid="admin_access.input"
-              type="password"
+              type="text"
               placeholder="Enter admin code"
               value={adminCode}
               onChange={(e) => setAdminCode(e.target.value)}

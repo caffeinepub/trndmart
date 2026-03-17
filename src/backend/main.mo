@@ -1,17 +1,13 @@
 import Map "mo:core/Map";
 import Principal "mo:core/Principal";
 import Text "mo:core/Text";
-import Array "mo:core/Array";
 import Runtime "mo:core/Runtime";
 import Time "mo:core/Time";
 import Nat "mo:core/Nat";
-import Iter "mo:core/Iter";
+import Blob "mo:core/Blob";
 import Storage "blob-storage/Storage";
 import MixinStorage "blob-storage/Mixin";
 import AccessControl "authorization/access-control";
-import MixinAuthorization "authorization/MixinAuthorization";
-
-
 
 actor {
   public type Category = {
@@ -68,51 +64,78 @@ actor {
   let orders = Map.empty<Text, Order>();
   let userProfiles = Map.empty<Principal, UserProfile>();
 
-  var adminClaimed : Bool = false; // retained for upgrade compatibility
-
+  // Retained for upgrade compatibility with previous stable state
+  var adminClaimed : Bool = false;
   let accessControlState = AccessControl.initState();
-  include MixinAuthorization(accessControlState);
+
+  // Simple admin tracking via direct map -- no role system needed
+  let adminPrincipals = Map.empty<Principal, Bool>();
+
   include MixinStorage();
 
+  func isRegistered(caller : Principal) : Bool {
+    userProfiles.get(caller) != null
+  };
+
+  func checkAdmin(caller : Principal) : Bool {
+    switch (adminPrincipals.get(caller)) {
+      case (?true) { true };
+      case (_) { false };
+    };
+  };
+
+  // Seed one sample product on first upgrade if store is empty
+  system func postupgrade() {
+    if (products.size() == 0) {
+      let sampleProduct : Product = {
+        id = "sample-001";
+        name = "Premium Water Bottle 1L";
+        description = "High-quality stainless steel water bottle, 1 litre capacity. Keeps drinks cold for 24 hours. Ideal for home, gym, and travel.";
+        price = 49900;
+        category = #bottles;
+        image = Blob.fromArray([]);
+        stock = 50;
+        isAvailable = true;
+      };
+      products.add(sampleProduct.id, sampleProduct);
+    };
+  };
+
   public shared ({ caller }) func registerUser(name : Text) : async () {
-    if (userProfiles.get(caller) != null) {
+    if (isRegistered(caller)) {
       Runtime.trap("User already registered");
     };
     let profile : UserProfile = { name };
     userProfiles.add(caller, profile);
-    AccessControl.assignRole(accessControlState, caller, caller, #user);
   };
 
   public shared ({ caller }) func claimAdmin(secret : Text) : async () {
     if (secret != "admin123") {
       Runtime.trap("Invalid admin code");
     };
-    switch (userProfiles.get(caller)) {
-      case (null) {
-        Runtime.trap("You must sign up before claiming admin access");
-      };
-      case (?_) {
-        AccessControl.assignRole(accessControlState, caller, caller, #admin);
-      };
+    if (not isRegistered(caller)) {
+      Runtime.trap("You must sign up before claiming admin access");
     };
+    adminPrincipals.add(caller, true);
+  };
+
+  public query ({ caller }) func isCallerAdmin() : async Bool {
+    checkAdmin(caller)
   };
 
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized");
-    };
     userProfiles.get(caller);
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
-    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+    if (caller != user and not checkAdmin(caller)) {
       Runtime.trap("Unauthorized");
     };
     userProfiles.get(user);
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not isRegistered(caller)) {
       Runtime.trap("Unauthorized");
     };
     userProfiles.add(caller, profile);
@@ -131,14 +154,14 @@ actor {
   };
 
   public shared ({ caller }) func addProduct(product : Product) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not checkAdmin(caller)) {
       Runtime.trap("Unauthorized: Only admins can add products");
     };
     products.add(product.id, product);
   };
 
   public shared ({ caller }) func updateProduct(product : Product) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not checkAdmin(caller)) {
       Runtime.trap("Unauthorized: Only admins can update products");
     };
     switch (products.get(product.id)) {
@@ -148,14 +171,14 @@ actor {
   };
 
   public shared ({ caller }) func deleteProduct(productId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not checkAdmin(caller)) {
       Runtime.trap("Unauthorized: Only admins can delete products");
     };
     products.remove(productId);
   };
 
   public query ({ caller }) func getCart() : async [CartItem] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not isRegistered(caller)) {
       Runtime.trap("Unauthorized");
     };
     switch (carts.get(caller)) {
@@ -165,7 +188,7 @@ actor {
   };
 
   public shared ({ caller }) func addToCart(item : CartItem) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not isRegistered(caller)) {
       Runtime.trap("Unauthorized");
     };
     let currentCart = switch (carts.get(caller)) {
@@ -176,7 +199,7 @@ actor {
   };
 
   public shared ({ caller }) func removeFromCart(productId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not isRegistered(caller)) {
       Runtime.trap("Unauthorized");
     };
     let currentCart = switch (carts.get(caller)) {
@@ -187,14 +210,14 @@ actor {
   };
 
   public shared ({ caller }) func clearCart() : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not isRegistered(caller)) {
       Runtime.trap("Unauthorized");
     };
     carts.remove(caller);
   };
 
   public shared ({ caller }) func placeOrder(deliveryAddress : Text) : async Text {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not isRegistered(caller)) {
       Runtime.trap("Unauthorized");
     };
     let cartItems = switch (carts.get(caller)) {
@@ -225,7 +248,7 @@ actor {
   };
 
   public shared ({ caller }) func updateOrderStatus(orderId : Text, status : OrderStatus) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not checkAdmin(caller)) {
       Runtime.trap("Unauthorized");
     };
     switch (orders.get(orderId)) {
@@ -235,14 +258,14 @@ actor {
   };
 
   public query ({ caller }) func getOrderHistory() : async [Order] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+    if (not isRegistered(caller)) {
       Runtime.trap("Unauthorized");
     };
     orders.values().toArray().filter(func(order) { order.userId == caller });
   };
 
   public query ({ caller }) func getAllOrders() : async [Order] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+    if (not checkAdmin(caller)) {
       Runtime.trap("Unauthorized");
     };
     orders.values().toArray();

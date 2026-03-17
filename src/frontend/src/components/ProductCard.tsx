@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ShoppingCart } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import type { Product } from "../backend";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
@@ -16,9 +17,11 @@ export function ProductCard({ product, index = 1 }: ProductCardProps) {
   const { identity } = useInternetIdentity();
   const addToCart = useAddToCart();
   const navigate = useNavigate();
+  const [imgError, setImgError] = useState(false);
 
   const priceInRupees = Number(product.price) / 100;
   const imageUrl = product.image?.getDirectURL?.() ?? "";
+  const showImage = !!imageUrl && !imgError;
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -43,12 +46,13 @@ export function ProductCard({ product, index = 1 }: ProductCardProps) {
     <div data-ocid={`product.item.${index}`} className="product-card group">
       <Link to="/products/$id" params={{ id: product.id }} className="block">
         <div className="relative overflow-hidden bg-muted aspect-[4/3]">
-          {imageUrl ? (
+          {showImage ? (
             <img
               src={imageUrl}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               loading="lazy"
+              onError={() => setImgError(true)}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-accent">
