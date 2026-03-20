@@ -1,41 +1,18 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  Crown,
-  Loader2,
-  Menu,
-  ShieldCheck,
-  ShoppingCart,
-  X,
-} from "lucide-react";
+import { Crown, Menu, ShoppingCart, X } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import {
-  useCart,
-  useClaimAdmin,
-  useIsAdmin,
-  useUserProfile,
-} from "../hooks/useQueries";
+import { useCart, useIsAdmin, useUserProfile } from "../hooks/useQueries";
 
 export function Header() {
   const routerState = useRouterState();
@@ -47,9 +24,6 @@ export function Header() {
   const { data: isAdmin } = useIsAdmin();
   const { data: profile } = useUserProfile();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
-  const [adminCode, setAdminCode] = useState("");
-  const claimAdmin = useClaimAdmin();
 
   const cartCount = cart?.length ?? 0;
 
@@ -58,40 +32,10 @@ export function Header() {
     queryClient.clear();
   };
 
-  const handleClaimAdmin = async () => {
-    try {
-      await claimAdmin.mutateAsync(adminCode.trim());
-      toast.success("Admin access granted!");
-      setAdminDialogOpen(false);
-      setAdminCode("");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const lower = msg.toLowerCase();
-      if (lower.includes("sign up") || lower.includes("register")) {
-        toast.error(
-          "You must create an account first before claiming admin access.",
-        );
-      } else if (
-        lower.includes("invalid") ||
-        lower.includes("wrong") ||
-        lower.includes("incorrect")
-      ) {
-        toast.error("Wrong admin code. Please check and try again.");
-      } else {
-        toast.error(msg || "Wrong admin code. Please check and try again.");
-      }
-    }
-  };
-
-  const openAdminDialog = () => {
-    setAdminCode("");
-    setAdminDialogOpen(true);
-    setMobileOpen(false);
-  };
-
   const navLinks = [
     { to: "/" as const, label: "Home", ocid: "nav.home_link" },
     { to: "/products" as const, label: "Products", ocid: "nav.products_link" },
+    { to: "/support" as const, label: "Support", ocid: "nav.support_link" },
   ];
 
   return (
@@ -173,22 +117,9 @@ export function Header() {
                       className="cursor-pointer w-full flex items-center gap-2"
                     >
                       <Crown className="h-4 w-4 text-primary" />
-                      Admin Panel
+                      Store Panel
                     </Link>
                   </DropdownMenuItem>
-                )}
-                {!isAdmin && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      data-ocid="nav.admin_access_button"
-                      className="cursor-pointer flex items-center gap-2 text-muted-foreground"
-                      onClick={openAdminDialog}
-                    >
-                      <ShieldCheck className="h-4 w-4" />
-                      Store Owner Access
-                    </DropdownMenuItem>
-                  </>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -265,18 +196,8 @@ export function Header() {
                   className="text-sm font-medium py-2 flex items-center gap-2"
                   onClick={() => setMobileOpen(false)}
                 >
-                  <Crown className="h-4 w-4 text-primary" /> Admin Panel
+                  <Crown className="h-4 w-4 text-primary" /> Store Panel
                 </Link>
-              )}
-              {!isAdmin && (
-                <button
-                  type="button"
-                  data-ocid="nav.admin_access_button"
-                  className="text-sm font-medium py-2 text-muted-foreground text-left flex items-center gap-2"
-                  onClick={openAdminDialog}
-                >
-                  <ShieldCheck className="h-4 w-4" /> Store Owner Access
-                </button>
               )}
               <button
                 type="button"
@@ -319,68 +240,6 @@ export function Header() {
           <div className="h-full bg-primary animate-pulse" />
         </div>
       )}
-
-      {/* Store Owner Access Dialog */}
-      <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
-        <DialogContent className="sm:max-w-sm" data-ocid="admin_access.dialog">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-primary" />
-              Store Owner Access
-            </DialogTitle>
-            <DialogDescription>
-              Enter your admin code to unlock store management features.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-2">
-            <Label htmlFor="admin-code" className="sr-only">
-              Admin Code
-            </Label>
-            <Input
-              id="admin-code"
-              data-ocid="admin_access.input"
-              type="text"
-              placeholder="Enter admin code"
-              value={adminCode}
-              onChange={(e) => setAdminCode(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && adminCode.trim()) {
-                  handleClaimAdmin();
-                }
-              }}
-              autoFocus
-            />
-          </div>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              data-ocid="admin_access.cancel_button"
-              onClick={() => {
-                setAdminDialogOpen(false);
-                setAdminCode("");
-              }}
-              disabled={claimAdmin.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              data-ocid="admin_access.confirm_button"
-              onClick={handleClaimAdmin}
-              disabled={!adminCode.trim() || claimAdmin.isPending}
-              className="bg-primary text-white hover:bg-primary/90"
-            >
-              {claimAdmin.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                "Confirm"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </header>
   );
 }

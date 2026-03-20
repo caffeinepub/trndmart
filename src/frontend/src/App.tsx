@@ -18,9 +18,13 @@ import { CheckoutPage } from "./pages/CheckoutPage";
 import { HomePage } from "./pages/HomePage";
 import { OrderConfirmationPage } from "./pages/OrderConfirmationPage";
 import { OrderHistoryPage } from "./pages/OrderHistoryPage";
+import { OwnerAccessPage } from "./pages/OwnerAccessPage";
+import { PaymentFailurePage } from "./pages/PaymentFailurePage";
+import { PaymentSuccessPage } from "./pages/PaymentSuccessPage";
 import { ProductDetailPage } from "./pages/ProductDetailPage";
 import { SignInPage } from "./pages/SignInPage";
 import { SignUpPage } from "./pages/SignUpPage";
+import { SupportPage } from "./pages/SupportPage";
 
 function RootLayout() {
   return (
@@ -132,6 +136,26 @@ const adminRoute = createRoute({
     </ProtectedRoute>
   ),
 });
+const supportRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/support",
+  component: SupportPage,
+});
+const ownerAccessRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/owner-access",
+  component: OwnerAccessPage,
+});
+const paymentSuccessRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/payment-success",
+  component: PaymentSuccessPage,
+});
+const paymentFailureRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/payment-failure",
+  component: PaymentFailurePage,
+});
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -144,6 +168,10 @@ const routeTree = rootRoute.addChildren([
   signinRoute,
   signupRoute,
   adminRoute,
+  supportRoute,
+  ownerAccessRoute,
+  paymentSuccessRoute,
+  paymentFailureRoute,
 ]);
 
 const router = createRouter({ routeTree });

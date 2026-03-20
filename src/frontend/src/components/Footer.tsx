@@ -7,78 +7,90 @@ export function Footer() {
   );
 
   return (
-    <footer className="bg-foreground text-white mt-auto">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+    <footer className="bg-card border-t border-border mt-auto">
+      <div className="container mx-auto px-4 py-10">
+        <div className="grid sm:grid-cols-3 gap-8 mb-8">
+          {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">T</span>
+              <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center">
+                <span className="text-white font-bold text-xs">T</span>
               </div>
-              <span className="font-display font-bold text-xl text-white">
-                TrNDMart
+              <span className="font-display font-bold text-lg">
+                TrND<span className="text-primary">Mart</span>
               </span>
             </div>
-            <p className="text-white/60 text-sm">
-              Your trusted Indian online marketplace for quality products at
+            <p className="text-sm text-muted-foreground">
+              Your trusted Indian e-commerce destination for quality products at
               great prices.
             </p>
           </div>
+
+          {/* Quick links */}
           <div>
-            <h4 className="font-semibold text-white mb-3">Quick Links</h4>
-            <ul className="space-y-2 text-sm text-white/60">
+            <h4 className="font-semibold text-sm mb-3">Quick Links</h4>
+            <ul className="space-y-2">
               <li>
-                <Link to="/" className="hover:text-primary transition-colors">
+                <Link
+                  to="/"
+                  data-ocid="footer.home_link"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
                   Home
                 </Link>
               </li>
               <li>
                 <Link
                   to="/products"
-                  className="hover:text-primary transition-colors"
+                  data-ocid="footer.products_link"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   Products
                 </Link>
               </li>
               <li>
                 <Link
-                  to="/cart"
-                  className="hover:text-primary transition-colors"
-                >
-                  Cart
-                </Link>
-              </li>
-              <li>
-                <Link
                   to="/orders"
-                  className="hover:text-primary transition-colors"
+                  data-ocid="footer.orders_link"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   My Orders
                 </Link>
               </li>
+              <li>
+                <Link
+                  to="/support"
+                  data-ocid="footer.support_link"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Customer Support
+                </Link>
+              </li>
             </ul>
           </div>
+
+          {/* Contact / Policy */}
           <div>
-            <h4 className="font-semibold text-white mb-3">Payment Methods</h4>
-            <div className="flex flex-col gap-2 text-sm text-white/60">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-primary rounded-full" />
-                Cash on Delivery (COD)
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-primary rounded-full" />
-                Safe &amp; Secure
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-primary rounded-full" />
-                Pan India Delivery
-              </div>
-            </div>
+            <h4 className="font-semibold text-sm mb-3">Contact</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>
+                <a
+                  href="mailto:support@trndmart.in"
+                  className="hover:text-primary transition-colors"
+                >
+                  support@trndmart.in
+                </a>
+              </li>
+              <li>Free delivery on all orders</li>
+              <li>7-day return policy</li>
+              <li>3-7 business days delivery</li>
+            </ul>
           </div>
         </div>
-        <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row justify-between items-center gap-2 text-sm text-white/50">
-          <span>&copy; {year} TrNDMart. All rights reserved.</span>
-          <span>
+
+        <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
+          <p>© {year} TrNDMart. All rights reserved.</p>
+          <p>
             Built with ❤️ using{" "}
             <a
               href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${hostname}`}
@@ -88,7 +100,7 @@ export function Footer() {
             >
               caffeine.ai
             </a>
-          </span>
+          </p>
         </div>
       </div>
     </footer>

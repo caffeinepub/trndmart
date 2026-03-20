@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingCart } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { Eye, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Product } from "../backend";
@@ -11,9 +11,14 @@ import { useAddToCart } from "../hooks/useQueries";
 interface ProductCardProps {
   product: Product;
   index?: number;
+  onQuickView?: (product: Product) => void;
 }
 
-export function ProductCard({ product, index = 1 }: ProductCardProps) {
+export function ProductCard({
+  product,
+  index = 1,
+  onQuickView,
+}: ProductCardProps) {
   const { identity } = useInternetIdentity();
   const addToCart = useAddToCart();
   const navigate = useNavigate();
@@ -42,9 +47,23 @@ export function ProductCard({ product, index = 1 }: ProductCardProps) {
     }
   };
 
+  const handleCardClick = () => {
+    if (onQuickView) {
+      onQuickView(product);
+    }
+  };
+
   return (
     <div data-ocid={`product.item.${index}`} className="product-card group">
-      <Link to="/products/$id" params={{ id: product.id }} className="block">
+      <div
+        className="block cursor-pointer"
+        onClick={handleCardClick}
+        role={onQuickView ? "button" : undefined}
+        tabIndex={onQuickView ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && onQuickView) onQuickView(product);
+        }}
+      >
         <div className="relative overflow-hidden bg-muted aspect-[4/3]">
           {showImage ? (
             <img
@@ -67,6 +86,13 @@ export function ProductCard({ product, index = 1 }: ProductCardProps) {
           <Badge className="absolute top-2 left-2 bg-primary text-white capitalize text-xs">
             {product.category}
           </Badge>
+          {onQuickView && (
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full px-3 py-1.5 flex items-center gap-1.5 text-xs font-medium text-foreground shadow">
+                <Eye className="h-3.5 w-3.5" /> Quick View
+              </div>
+            </div>
+          )}
         </div>
         <div className="p-4">
           <h3 className="font-semibold text-foreground line-clamp-1 mb-1">
@@ -86,7 +112,7 @@ export function ProductCard({ product, index = 1 }: ProductCardProps) {
             )}
           </div>
         </div>
-      </Link>
+      </div>
       <div className="px-4 pb-4">
         <Button
           data-ocid="product.add_cart_button"

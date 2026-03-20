@@ -19,6 +19,7 @@ export function useProducts() {
       return actor.getProducts();
     },
     enabled: !!actor && !isFetching,
+    refetchInterval: 30000,
   });
 }
 
@@ -56,6 +57,7 @@ export function useCart() {
       return actor.getCart();
     },
     enabled: !!actor && !isFetching && !!identity,
+    refetchInterval: 30000,
   });
 }
 
@@ -123,6 +125,7 @@ export function useOrderHistory() {
       return actor.getOrderHistory();
     },
     enabled: !!actor && !isFetching && !!identity,
+    refetchInterval: 30000,
   });
 }
 
@@ -136,6 +139,7 @@ export function useAllOrders() {
       return actor.getAllOrders();
     },
     enabled: !!actor && !isFetching && !!identity,
+    refetchInterval: 30000,
   });
 }
 

@@ -2,11 +2,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Filter, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Category } from "../backend";
+import type { Product } from "../backend";
 import { ProductCard } from "../components/ProductCard";
+import { ProductQuickViewModal } from "../components/ProductQuickViewModal";
 import { useProducts } from "../hooks/useQueries";
 
 const CATEGORY_LABELS: Record<Category, string> = {
@@ -26,6 +28,9 @@ export function CatalogPage() {
   const [searchText, setSearchText] = useState("");
   const selectedCategory = (search.category as Category) ?? null;
   const { data: products, isLoading } = useProducts();
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(
+    null,
+  );
 
   const filtered = useMemo(() => {
     let list = products ?? [];
@@ -129,7 +134,12 @@ export function CatalogPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filtered.map((product, i) => (
-            <ProductCard key={product.id} product={product} index={i + 1} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              index={i + 1}
+              onQuickView={(p) => setQuickViewProduct(p)}
+            />
           ))}
         </div>
       )}
@@ -149,6 +159,12 @@ export function CatalogPage() {
           </Badge>
         </div>
       )}
+
+      <ProductQuickViewModal
+        product={quickViewProduct}
+        open={!!quickViewProduct}
+        onOpenChange={(open) => !open && setQuickViewProduct(null)}
+      />
     </div>
   );
 }

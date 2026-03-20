@@ -28,11 +28,19 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Loader2, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import {
+  CheckCircle2,
+  CreditCard,
+  Edit,
+  Loader2,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Category, ExternalBlob, OrderStatus } from "../backend";
 import type { Product } from "../backend";
+import { useActor } from "../hooks/useActor";
 import {
   useAddProduct,
   useAllOrders,
@@ -86,6 +94,159 @@ function formatIndianDate(timestamp: bigint): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function PaymentsTab() {
+  const { actor } = useActor();
+  const [isConfigured, setIsConfigured] = useState<boolean | null>(null);
+  const [secretKey, setSecretKey] = useState("");
+  const [countries, setCountries] = useState("IN,US");
+  const [saving, setSaving] = useState(false);
+  const [reconfigure, setReconfigure] = useState(false);
+
+  useEffect(() => {
+    const check = async () => {
+      if (!actor) return;
+      const a = actor as any;
+      if (typeof a.isStripeConfigured !== "function") {
+        setIsConfigured(false);
+        return;
+      }
+      try {
+        const result = await a.isStripeConfigured();
+        setIsConfigured(result);
+      } catch {
+        setIsConfigured(false);
+      }
+    };
+    check();
+  }, [actor]);
+
+  const handleSave = async () => {
+    if (!secretKey.trim()) {
+      toast.error("Please enter your Stripe Secret Key");
+      return;
+    }
+    setSaving(true);
+    try {
+      const a = actor as any;
+      if (typeof a.setStripeConfiguration !== "function") {
+        toast.error("Stripe configuration is not supported in this version.");
+        setSaving(false);
+        return;
+      }
+      await a.setStripeConfiguration({
+        secretKey: secretKey.trim(),
+        allowedCountries: countries
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean),
+      });
+      setIsConfigured(true);
+      setReconfigure(false);
+      setSecretKey("");
+      toast.success("Stripe configured successfully!");
+    } catch {
+      toast.error("Failed to save Stripe configuration");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (isConfigured === null) {
+    return <Skeleton className="h-48 w-full" />;
+  }
+
+  return (
+    <div className="max-w-lg">
+      <h2 className="font-semibold text-lg mb-2">Online Payments</h2>
+      <p className="text-sm text-muted-foreground mb-6">
+        Configure Stripe to accept online card and UPI payments from customers.
+      </p>
+
+      {isConfigured && !reconfigure ? (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+            <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+            <div>
+              <p className="font-semibold text-green-800">
+                Stripe Payments Active
+              </p>
+              <p className="text-sm text-green-600">
+                Customers can now pay online via card or UPI.
+              </p>
+            </div>
+            <Badge className="ml-auto bg-green-100 text-green-800 border-green-300">
+              Active
+            </Badge>
+          </div>
+          <Button
+            variant="outline"
+            data-ocid="admin.payments.reconfigure_button"
+            onClick={() => setReconfigure(true)}
+          >
+            Reconfigure
+          </Button>
+        </div>
+      ) : (
+        <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <CreditCard className="h-5 w-5 text-primary" />
+            <h3 className="font-medium">Stripe Configuration</h3>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="stripe-key">Stripe Secret Key *</Label>
+            <Input
+              id="stripe-key"
+              data-ocid="admin.payments.secret_key_input"
+              type="password"
+              placeholder="sk_live_..."
+              value={secretKey}
+              onChange={(e) => setSecretKey(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Find this in your Stripe Dashboard → Developers → API keys
+            </p>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="allowed-countries">Allowed Countries</Label>
+            <Input
+              id="allowed-countries"
+              data-ocid="admin.payments.countries_input"
+              placeholder="IN,US,GB"
+              value={countries}
+              onChange={(e) => setCountries(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Comma-separated country codes (e.g. IN,US,GB)
+            </p>
+          </div>
+          <div className="flex gap-2">
+            {reconfigure && (
+              <Button variant="outline" onClick={() => setReconfigure(false)}>
+                Cancel
+              </Button>
+            )}
+            <Button
+              data-ocid="admin.payments.save_button"
+              className="bg-primary text-white hover:bg-primary/90"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                "Save Configuration"
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function AdminPage() {
@@ -188,7 +349,7 @@ export function AdminPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="font-display text-3xl font-bold mb-2">Admin Panel</h1>
+      <h1 className="font-display text-3xl font-bold mb-2">Store Panel</h1>
       <p className="text-muted-foreground mb-8">Manage your TrNDMart store</p>
 
       <Tabs defaultValue="products">
@@ -198,6 +359,9 @@ export function AdminPage() {
           </TabsTrigger>
           <TabsTrigger value="orders" data-ocid="admin.orders.tab">
             Orders ({orders?.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger value="payments" data-ocid="admin.payments.tab">
+            Payments
           </TabsTrigger>
         </TabsList>
 
@@ -535,6 +699,11 @@ export function AdminPage() {
               </Table>
             </div>
           )}
+        </TabsContent>
+
+        {/* Payments Tab */}
+        <TabsContent value="payments">
+          <PaymentsTab />
         </TabsContent>
       </Tabs>
     </div>
